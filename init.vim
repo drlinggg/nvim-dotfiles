@@ -10,6 +10,10 @@ set tabstop=4
 set shiftwidth=4
 set softtabstop=4
 set autoindent
+set nostartofline
+
+set autoread
+autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() !~ '\v(c|r.?|!|t)' && getcmdwintype() == '' | checktime | endif
 
 " Use the system clipboard on macOS
 set clipboard=unnamedplus
@@ -44,45 +48,17 @@ call plug#begin('~/.vim/plugged')
     Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
     Plug 'neoclide/coc.nvim', {'branch': 'release'}
     Plug 'https://github.com/fannheyward/coc-pyright'
-    Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
-    Plug 'elliothatch/burgundy.vim'
+    Plug 'nvim-treesitter/nvim-treesitter', { 'commit': '5cb0114e6242625db56dd6440e945ed1ece10bc7', 'do': ':TSUpdate' }
     Plug 'tpope/vim-fugitive'
     Plug 'iamcco/markdown-preview.nvim'
-    Plug 'github/copilot.vim'
     Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
     Plug 'junegunn/fzf.vim'
-    "themes"
-    Plug 'joshdick/onedark.vim'
-    Plug 'Mofiqul/dracula.nvim'
-
     "Claude"
-    Plug 'nvim-lua/plenary.nvim'
-    Plug 'greggh/claude-code.nvim'
+    Plug 'drlinggg/claude-code.vim'
+    "Themes"
+    Plug 'drlinggg/burgundy.vim'
 
 call plug#end()
-
-" ============================================================================
-" PLUGIN CONFIG: python-mode
-" ============================================================================
-let g:pymode_syntax = 1
-let g:pymode_syntax_all = 1
-let g:pymode_syntax_print_as_function = 1
-let g:pymode_syntax_highlight_equal_operator = 1
-let g:pymode_syntax_highlight_stars_operator = 1
-let g:pymode_syntax_highlight_self = 1
-let g:pymode_syntax_indent_errors = 1
-let g:pymode_syntax_space_errors = 1
-let g:pymode_syntax_highlight_errors = 0
-
-let g:pymode_syntax_builtin_objs = 1
-let g:pymode_syntax_builtin_types = 1
-let g:pymode_syntax_highlight_exceptions = 1
-let g:pymode_syntax_highlight_async_await = 1
-let g:pymode_syntax_highlight_class_objects = 1
-
-let g:pymode_lint_on_write = 0
-let g:pymode_options_colorcolumn = 0
-let g:pymode_lint = 1
 
 " ============================================================================
 " PLUGIN CONFIG: coc.nvim
@@ -111,64 +87,57 @@ let g:coc_user_config = {
   \ 'signature.target': 'float',
   \ }
 
-" ============================================================================
-" PLUGIN CONFIG: claude-code
-" ============================================================================
-lua << EOF
-require('claude-code').setup({
-  window = { position = 'botright', split_ratio = 1.0 },
-})
--- Open Claude in a given layout: change the window in the config and toggle.
-local cc = require('claude-code')
-function _G.ClaudeOpen(position, ratio)
-  cc.config.window.position = position
-  cc.config.window.split_ratio = ratio
-  cc.toggle()
-end
-EOF
 
 " ============================================================================
 " APPEARANCE
 " ============================================================================
+set termguicolors
 colorscheme burgundy
-hi Normal guibg=#330f25
 
-" Conceal highlight, reapplied on colorscheme changes
-function! s:setup_conceal()
-  hi Conceal guibg=NONE ctermbg=NONE
-  hi Conceal guifg=#ff0000 ctermfg=48
-  hi Conceal gui=underline cterm=underline
-endfunction
-augroup custom_conceal
-  autocmd!
-  autocmd ColorScheme * call s:setup_conceal()
-  autocmd VimEnter * call s:setup_conceal()
-augroup END
-
-" Dark colors for diff
-hi DiffAdd    guifg=#a8d1a8 guibg=#0d3d0d ctermfg=151 ctermbg=22
-hi DiffChange guifg=#d1d1a8 guibg=#4a3d0d ctermfg=187 ctermbg=58
-hi DiffDelete guifg=#d1a8a8 guibg=#4d0d0d ctermfg=181 ctermbg=52
-hi DiffText   guifg=#ffffff guibg=#2a7d2a ctermfg=15  ctermbg=28
+" coc inlay hints (type hints): burgundy doesn't style these, so define them
+" here as muted italic. Must come after :colorscheme so it isn't overwritten.
+hi CocInlayHint guifg=#c9c3b7 guibg=NONE gui=italic ctermfg=251 cterm=italic
+hi! link CocInlayHintType      CocInlayHint
+hi! link CocInlayHintParameter CocInlayHint
 
 " ============================================================================
-" PYTHON SYNTAX
+" TREESITTER
 " ============================================================================
-" Simplified Python highlighting without conflicts
-autocmd FileType python syntax keyword pythonBoolean True False None
-autocmd FileType python syntax keyword pythonBuiltinType
-    \ bool bytearray bytes dict float frozenset int list object
-    \ set slice str tuple type complex range memoryview
-
-autocmd FileType python syntax keyword pythonBuiltinFunc
-    \ abs all any ascii bin bool breakpoint bytearray bytes
-    \ callable chr classmethod compile complex delattr dict dir
-    \ divmod enumerate eval exec filter float format frozenset
-    \ getattr globals hasattr hash help hex id input int isinstance
-    \ issubclass iter len list locals map max memoryview min next
-    \ object oct open ord pow print property range repr reversed
-    \ round set setattr slice sorted staticmethod str sum super
-    \ tuple type vars zip import
+" nvim-treesitter is a dependency of the burgundy colorscheme: burgundy is built
+" around treesitter capture groups (@variable, @function, @type, ...), so proper
+" highlighting requires it. It gives semantic highlighting that regex syntax
+" cannot: function calls, attributes, type annotations, parameters, f-strings.
+"
+" This uses the treesitter 'main' branch API (no configs.setup): install()
+" ensures parsers exist, and highlighting is started per-filetype with
+" vim.treesitter.start(). Install/refresh parsers with :TSInstall / :TSUpdate.
+lua << EOF
+local ok, ts = pcall(require, 'nvim-treesitter')
+if ok then
+  -- Ensure parsers are present (installs only the missing ones).
+  ts.install({
+    'python', 'lua', 'vim', 'vimdoc', 'bash',
+    'json', 'yaml', 'toml', 'markdown', 'markdown_inline',
+    'go', 'sql',
+  })
+  -- .env files get filetype 'env', which has no dedicated parser; reuse the
+  -- bash parser (dotenv is essentially KEY=value shell assignments).
+  vim.treesitter.language.register('bash', 'env')
+  -- The main branch does not auto-enable highlighting; start it per filetype.
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = {
+      'python', 'lua', 'vim', 'help', 'sh', 'bash',
+      'json', 'yaml', 'toml', 'markdown',
+      'go', 'sql', 'env',
+    },
+    callback = function()
+      pcall(vim.treesitter.start)
+      -- Experimental treesitter-based indentation.
+      vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    end,
+  })
+end
+EOF
 
 " ============================================================================
 " FUNCTIONS
@@ -275,20 +244,10 @@ nnoremap <leader>cq :CocList diagnostics<CR>
 " Toggle inlay hints
 nnoremap <leader>ch :CocCommand document.toggleInlayHint<CR>
 
-" --- Claude ---
-" ,ci - horizontal full height; ,cv - vertical on the side
-nnoremap <leader>ci :lua ClaudeOpen('botright', 1.0)<CR>
-nnoremap <leader>cv :lua ClaudeOpen('botright vsplit', 0.4)<CR>
-
 " --- NERDTree / fzf / markdown ---
 map <C-n> :NERDTreeToggle<CR>
 nnoremap <C-p> :Files<CR>
 nnoremap <leader>md :MarkdownPreviewToggle<CR>
-
-" ============================================================================
-" MISC
-" ============================================================================
-let g:python3_host_prog="/usr/bin/python3"
 
 " In Neovim Ctrl+T can conflict with the tag feature; disable matchit default
 if has('nvim')
