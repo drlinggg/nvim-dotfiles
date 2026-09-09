@@ -11,12 +11,11 @@ set shiftwidth=4
 set softtabstop=4
 set autoindent
 set nostartofline
+" Use the system clipboard on macOS
+set clipboard=unnamedplus
 
 set autoread
 autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() !~ '\v(c|r.?|!|t)' && getcmdwintype() == '' | checktime | endif
-
-" Use the system clipboard on macOS
-set clipboard=unnamedplus
 
 " Diff options
 set diffopt+=vertical
@@ -26,19 +25,6 @@ set diffopt+=foldcolumn:0
 if has("patch-8.1.0360")
     set diffopt+=internal,algorithm:patience
     set diffopt+=indent-heuristic
-endif
-
-" ============================================================================
-" TRUE COLOR
-" ============================================================================
-" Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
-if (empty($TMUX))
-  if (has("nvim"))
-    let $NVIM_TUI_ENABLE_TRUE_COLOR=1
-  endif
-  if (has("termguicolors"))
-    set termguicolors
-  endif
 endif
 
 " ============================================================================
@@ -100,6 +86,15 @@ hi CocInlayHint guifg=#c9c3b7 guibg=NONE gui=italic ctermfg=251 cterm=italic
 hi! link CocInlayHintType      CocInlayHint
 hi! link CocInlayHintParameter CocInlayHint
 
+if (empty($TMUX))
+  if (has("nvim"))
+    let $NVIM_TUI_ENABLE_TRUE_COLOR=1
+  endif
+  if (has("termguicolors"))
+    set termguicolors
+  endif
+endif
+
 " ============================================================================
 " TREESITTER
 " ============================================================================
@@ -140,8 +135,12 @@ end
 EOF
 
 " ============================================================================
-" FUNCTIONS
+" KEYMAPS
 " ============================================================================
+
+" Leader key (comma)
+let mapleader = ","
+
 " Terminal toggle
 let g:term_buf = 0
 let g:term_win = 0
@@ -166,11 +165,6 @@ function! TermToggle(height)
     endif
 endfunction
 
-" ============================================================================
-" KEYMAPS
-" ============================================================================
-" Leader key (comma)
-let mapleader = ","
 
 " --- Window navigation ---
 nnoremap <C-h> <C-w>h
