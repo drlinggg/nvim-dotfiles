@@ -42,7 +42,8 @@ call plug#begin('~/.vim/plugged')
     "Claude"
     Plug 'drlinggg/claude-code.vim'
     "Themes"
-    Plug 'drlinggg/burgundy.vim'
+    Plug 'drlinggg/pustota-python.nvim'
+    " Plug 'drlinggg/minimalistic-python.vim'
 
 call plug#end()
 
@@ -78,13 +79,7 @@ let g:coc_user_config = {
 " APPEARANCE
 " ============================================================================
 set termguicolors
-colorscheme burgundy
-
-" coc inlay hints (type hints): burgundy doesn't style these, so define them
-" here as muted italic. Must come after :colorscheme so it isn't overwritten.
-hi CocInlayHint guifg=#c9c3b7 guibg=NONE gui=italic ctermfg=251 cterm=italic
-hi! link CocInlayHintType      CocInlayHint
-hi! link CocInlayHintParameter CocInlayHint
+colorscheme pustota
 
 if (empty($TMUX))
   if (has("nvim"))
@@ -94,45 +89,6 @@ if (empty($TMUX))
     set termguicolors
   endif
 endif
-
-" ============================================================================
-" TREESITTER
-" ============================================================================
-" nvim-treesitter is a dependency of the burgundy colorscheme: burgundy is built
-" around treesitter capture groups (@variable, @function, @type, ...), so proper
-" highlighting requires it. It gives semantic highlighting that regex syntax
-" cannot: function calls, attributes, type annotations, parameters, f-strings.
-"
-" This uses the treesitter 'main' branch API (no configs.setup): install()
-" ensures parsers exist, and highlighting is started per-filetype with
-" vim.treesitter.start(). Install/refresh parsers with :TSInstall / :TSUpdate.
-lua << EOF
-local ok, ts = pcall(require, 'nvim-treesitter')
-if ok then
-  -- Ensure parsers are present (installs only the missing ones).
-  ts.install({
-    'python', 'lua', 'vim', 'vimdoc', 'bash',
-    'json', 'yaml', 'toml', 'markdown', 'markdown_inline',
-    'go', 'sql',
-  })
-  -- .env files get filetype 'env', which has no dedicated parser; reuse the
-  -- bash parser (dotenv is essentially KEY=value shell assignments).
-  vim.treesitter.language.register('bash', 'env')
-  -- The main branch does not auto-enable highlighting; start it per filetype.
-  vim.api.nvim_create_autocmd('FileType', {
-    pattern = {
-      'python', 'lua', 'vim', 'help', 'sh', 'bash',
-      'json', 'yaml', 'toml', 'markdown',
-      'go', 'sql', 'env',
-    },
-    callback = function()
-      pcall(vim.treesitter.start)
-      -- Experimental treesitter-based indentation.
-      vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-    end,
-  })
-end
-EOF
 
 " ============================================================================
 " KEYMAPS
