@@ -14,6 +14,12 @@ set nostartofline
 " Use the system clipboard on macOS
 set clipboard=unnamedplus
 
+" python3 provider is unused here and not even functional (pynvim isn't
+" installed, and no plugin registers a python3 remote host), yet the stock
+" ftplugin/python.vim probes it on every .py open — ~0.7s via the pyenv shim.
+" Disabling keeps has('python3')=0 without that probe.
+let g:loaded_python3_provider = 0
+
 set autoread
 autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() !~ '\v(c|r.?|!|t)' && getcmdwintype() == '' | checktime | endif
 
